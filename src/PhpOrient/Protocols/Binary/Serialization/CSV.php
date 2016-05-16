@@ -232,7 +232,9 @@ class CSV {
 
         if ( $c === 'a' || $c === 't' ) {
             # date / 1000
-            $collected = \DateTime::createFromFormat( 'U', substr( $collected, 0, -3 ) );
+            $aDate = new \DateTime();
+            // Changed to support negative unixtimestamp values (dates before 1970)
+            $collected = $aDate->setTimestamp(substr( $collected, 0, -3 ));
             $input     = substr( $input, 1 );
         } elseif ( $c === 'f' ) {
             // float
