@@ -512,9 +512,12 @@ abstract class Operation implements ConfigurableInterface {
             $record[ 'version' ] = $this->_readInt();
 
             $data               = CSV::unserialize( $this->_readBytes() );
-            $record[ 'oClass' ] = @$data[ 'oClass' ];
             $record[ 'rid' ]    = new ID( $cluster, $position );
-            unset( $data[ 'oClass' ] );
+            if( isset( $data['oClass'] ) ){
+                $record[ 'oClass' ] = $data[ 'oClass' ];
+                unset( $data[ 'oClass' ] );
+            }
+
             $record[ 'oData' ] = $data;
         }
 
@@ -531,6 +534,8 @@ abstract class Operation implements ConfigurableInterface {
     protected function _read_prefetch_record(){
 
         $resultSet = [];
+        $resultSet['*'] = [];
+        $resultSet['cached'] = [];
         $status = $this->_readByte();
         while ( $status != 0 ){
 
@@ -548,29 +553,64 @@ abstract class Operation implements ConfigurableInterface {
             }
 
             /**
-            * async-result-type byte as trailing byte of a record can be:
-            * 0: no records remain to be fetched
-            * 1: a record is returned as a result set
-            * 2: a record is returned as pre-fetched to be loaded in client's
-            *       cache only. It's not part of the result set but the client
-            *       knows that it's available for later access
-            */
+             * async-result-type byte as trailing byte of a record can be:
+             * 0: no records remain to be fetched
+             * 1: a record is returned as a result set
+             * 2: a record is returned as pre-fetched to be loaded in client's
+             *       cache only. It's not part of the result set but the client
+             *       knows that it's available for later access
+             */
             if( $status == 1 ){
                 #  a record is returned as a result set
-                $resultSet[] = $record;
+                $resultSet['*'][] = $record;
             } elseif( $status == 2 ){
 
+                /**
+                 * @var Record $record
+                 */
+                $resultSet['cached']['#'.$record->getRid()->cluster.':'.$record->getRid()->position] = $record;
                 #  save in cache
-                call_user_func( $this->_callback, $record );
+                //call_user_func( $this->_callback, $record );
             }
 
             $status = $this->_readByte();
         }
 
-        return $resultSet;
+        if(array_key_exists('*',$resultSet))
+            foreach($resultSet['*'] as $index => $mainRecord)
+            {
+                foreach($mainRecord->getOData() as $field_index => $field)
+                {
+                    if($field instanceof ID)
+                    {
+                        if(array_key_exists('#'.$field->cluster.':'.$field->position, $resultSet['cached']))
+                        {
+                            $resultSet['*'][$index]->$field_index =  $this->fillCachedData($resultSet['cached'],$resultSet['cached']['#'.$field->cluster.':'.$field->position]);
+                        }
+
+                    }
+                }
+            }
+        return $resultSet = $resultSet['*'];
 
     }
 
+    private function fillCachedData($cached,$obj)
+    {
+
+        foreach($obj->getOData() as $index => $value)
+        {
+            if($value instanceof ID)
+            {
+                if(array_key_exists('#'.$value->cluster.':'.$value->position, $cached))
+                {
+                    $obj->$index =  $this->fillCachedData($cached,$cached['#'.$value->cluster.':'.$value->position])->getOData();
+                }
+            }
+        }
+
+        return $obj;
+    }
     /**
      * Read sync command payloads
      *
@@ -592,7 +632,7 @@ abstract class Operation implements ConfigurableInterface {
                 $this->_readChar();
                 $res = array( null );
                 break;
-            case 'r':
+            case $response_type == 'r' || $response_type == 'w':
                 $res = [ Record::fromConfig( $this->_readRecord() ) ];
                 # get end Line \x00
                 $this->_readChar();
