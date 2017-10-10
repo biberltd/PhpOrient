@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 set -e
 
 PARENT_DIR=$(dirname $(cd "$(dirname "$0")"; pwd))
@@ -84,7 +85,7 @@ echo "--- Starting an instance of OrientDB ---"
 if [ -z "${HANG_UP}" ]; then
     sh -c ${ODB_LAUNCHER_SYML} </dev/null &>/dev/null &
     # Wait a bit for OrientDB to finish the initialization phase.
-    sleep 5
+    sleep 10
     printf "\n=== The CI environment has been initialized ===\n"
 else
     sh -c ${ODB_LAUNCHER_SYML}

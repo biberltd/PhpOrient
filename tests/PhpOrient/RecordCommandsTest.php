@@ -428,7 +428,13 @@ class RecordCommandsTest extends TestCase {
         $client = new PhpOrient( 'localhost', 2424 );
         $client->connect( 'root', 'root' );
 
-        $this->skipTestByOrientDBVersion( [ '2.0.13', '1.7.10' ] );
+        $this->skipTestByOrientDBVersion( [
+                '2.2.4',
+                '2.2.2',
+                '2.0.18',
+                '2.0.13',
+                '1.7.10'
+        ] );
 
         try {
             $client->dbDrop( $db_name, Constants::STORAGE_TYPE_MEMORY );
@@ -438,18 +444,18 @@ class RecordCommandsTest extends TestCase {
         }
 
         $client->dbCreate( $db_name,
-            Constants::STORAGE_TYPE_MEMORY,
-            Constants::DATABASE_TYPE_GRAPH
+                Constants::STORAGE_TYPE_MEMORY,
+                Constants::DATABASE_TYPE_GRAPH
         );
 
         $client->dbOpen( $db_name, 'admin', 'admin' );
 
         $client->command( "create class Test extends V" );
         $client->command( "create property Test.id string" );
+        $client->command( "create property Test.name string" );
         $client->command( "alter property Test.id DEFAULT uuid()" );
 
-        $rec = ( new Record() )->setOData( [] )->setRid( new ID( 11 ) );
-        $record = $client->recordCreate( $rec );
+        $record = $client->command( "insert into Test set name='This is a test'" );
 
         $this->assertArrayHasKey( 'id', $record );
         $this->assertNotEmpty( $record[ 'id' ] );
