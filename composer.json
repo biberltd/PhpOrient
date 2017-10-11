@@ -1,5 +1,5 @@
 {
-    "name": "ostico/phporient",
+    "name": "biberltd/phporient",
     "description": "PHPOrient is a good php driver based on the binary protocol of OrientDB.",
     "version": "v1.2.3",
     "keywords": [
