@@ -604,7 +604,7 @@ abstract class Operation implements ConfigurableInterface {
             {
                 if(array_key_exists('#'.$value->cluster.':'.$value->position, $cached))
                 {
-                    $obj->$index =  $this->fillCachedData($cached,$cached['#'.$value->cluster.':'.$value->position])->getOData();
+                    $obj->$index =  $this->fillCachedData($cached,$cached['#'.$value->cluster.':'.$value->position]);
                 }
             }
         }
