@@ -577,24 +577,50 @@ abstract class Operation implements ConfigurableInterface {
         }
 
         if(array_key_exists('*',$resultSet))
-            foreach($resultSet['*'] as $index => $mainRecord)
-            {
-                foreach($mainRecord->getOData() as $field_index => $field)
-                {
-                    if($field instanceof ID)
-                    {
-                        if(array_key_exists('#'.$field->cluster.':'.$field->position, $resultSet['cached']))
-                        {
-                            $resultSet['*'][$index]->$field_index =  $this->fillCachedData($resultSet['cached'],$resultSet['cached']['#'.$field->cluster.':'.$field->position]);
-                        }
-
-                    }
-                }
+            foreach($resultSet['*'] as $index => $mainRecord) {
+                $resultSet[$index] = $this->checkCacheRecord($mainRecord, $resultSet['cached']);
             }
-        return $resultSet = $resultSet['*'];
+
+        return $resultSet['*'];
 
     }
 
+    private function checkCacheRecord($mainRecord, $cached)
+    {
+        if($mainRecord instanceof  Record)
+        {
+            foreach($mainRecord->getOData() as $field_index => $field)
+            {
+                if($field instanceof ID)
+                {
+                    if(array_key_exists('#'.$field->cluster.':'.$field->position,$cached))
+                    {
+                        $mainRecord->$field_index =  $this->fillCachedData($cached,$cached['#'.$field->cluster.':'.$field->position]);
+                    }
+
+                }
+                if(is_array($field))
+                {
+                    $mainRecord->$field_index=$this->checkCacheRecord($field,$cached);
+                }
+            }
+        }elseif(is_array($mainRecord)){
+            foreach($mainRecord as $field_index => $field)
+            {
+                if($field instanceof ID)
+                {
+                    if(array_key_exists('#'.$field->cluster.':'.$field->position,$cached))
+                    {
+                        $mainRecord[$field_index] =  $this->fillCachedData($cached,$cached['#'.$field->cluster.':'.$field->position]);
+                    }
+
+                }else{
+                    $mainRecord[$field_index]=$field;
+                }
+            }
+        }
+        return $mainRecord;
+    }
     private function fillCachedData($cached,$obj)
     {
 
