@@ -9,7 +9,7 @@
     ],
     "homepage": "https://github.com/Ostico/PhpOrient",
     "type": "library",
-    "license": "Apache License v2.0",
+    "license": "MIT",
     "authors": [
         {
             "name": "Domenico Lupinetti",
